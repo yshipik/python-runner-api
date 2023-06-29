@@ -11,7 +11,7 @@ class TestQueryModel(BaseModel):
     code: str
     filename: str
 
-origins = ["http://localhost:3000", "http://172.17.0.1"]
+origins = ["*"]
 
 app = FastAPI()
 app.add_middleware(
