@@ -6,8 +6,10 @@ class CodeRunner:
     TEST_DEFAULT_PATH = "tests/"
     FILE_DEFAULT_PREVENT = "prevent.py"
     SOLUTIONS_DEFAULT_PATH = "files/"
-    DEFAULT_TIMEOUT = 3
-    def defend_from_bad_activity(code: str):
+    DEFAULT_TIMEOUT = os.environ.get("DEFAULT_TIMEOUT") if os.environ.get("DEFAULT_TIMEOUT") else 3
+
+    @classmethod
+    def defend_from_bad_activity(cls, code: str):
         if "exec" in code:
             return (False, "You can't use exec() in your code")
         elif "import" in code:
@@ -62,6 +64,7 @@ class CodeRunner:
                 return (-1, "", "Server Error: Test file Not Found")
         else:
             return (-1, "", check[1])
+        
     @classmethod
     def add_test_file(cls, fileb: bytes, filename: str):
         try:
