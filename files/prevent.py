@@ -1,14 +1,13 @@
 import sys
-from typing import Any
+granted_modules = ["math", "random"]
 
-def open(filename: str, mode: str):
-    raise BaseException("Cannot interact with files")
+def restricted_open(filename: str, mode: str = "w", **kw):
+    raise PermissionError("Cannot interact with files")
+tt = __import__
+def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    if globals["__name__"] != "__main__" or name in granted_modules:
+        return tt(name, globals, locals, fromlist, level)
+    else:
+        raise ImportError("Importing this module is not allowed")
 
-def ri(name, globals=None, locals=None, fromlist=(), level=0):
-    raise ImportError("Importing this module is not allowed")
-
-ri.__vl = __import__
-
-sys.modules["builtins"].__import__ = ri
-
-from math import sin
+sys.modules["builtins"].__import__ = restricted_import
