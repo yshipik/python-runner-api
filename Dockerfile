@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 COPY main.py /app/
+COPY pm.py /app/
+COPY process.py /app/
 COPY sandbox.py /app/
 COPY /files/ /app/files/
 COPY /tests/ /app/tests/

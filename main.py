@@ -46,7 +46,7 @@ async def run_code(code: CodeModel, response: Response):
     status_code, output, error, uuid = CodeRunner.run_code(code.code)
     if uuid:
         print("Process was created " + str(uuid))
-        pm_running.processes[str(uuid)] = Process(CodeRunner.SOLUTIONS_DEFAULT_PATH + CodeRunner.FILE_DEFAULT_NAME)
+        pm_running.processes[str(uuid)] = Process(CodeRunner.SOLUTIONS_DEFAULT_PATH + CodeRunner.FILE_DEFAULT_NAME, str(uuid))
         return {'status_code': code, 'output': output, 'error': error, 'uuid': uuid}
     if status_code == -1:
         state = handle_bad_behavior(status_code, error, response)
@@ -81,10 +81,14 @@ async def get_test(response: Response):
 
 async def process_read(sid, pr: Process):
     while True:
-        data = await pr.read_output()
-        status =  pr.body.status if pr.body.status else -1
-        await socket_manager.emit("response", (data, status), to=sid)
-
+        try:
+            data = await pr.read_output()
+            await socket_manager.emit("response", (data,), to=sid)
+        except EOFError:
+            pm_running.remove_process(pr.uuid)
+            await socket_manager.emit("processend")
+            break
+            
 @socket_manager.on
 async def connect(sid, environ, auth):
     print(f"User with sid {sid} is connected")
@@ -95,17 +99,19 @@ async def disconnect(sid):
 
 @socket_manager.on("processconnect")
 async def process_connect(sid, uuid: str):
-    print(str(uuid))
-    print(pm_running.processes.keys())
     pr = pm_running.processes.get(str(uuid))
-    task = asyncio.create_task(process_read(sid, pr))
-    await task
+    if pr != None:
+        task = asyncio.create_task(process_read(sid, pr))
+        await task
+    else:
+        await socket_manager.emit("error", "Process doesn't exist")
 @socket_manager.on("prompt")
 async def message(sid, uuid: str, data: str):
     print(sid, uuid, data)
     print(pm_running.processes.keys())
     pr = pm_running.processes.get(str(uuid))
     await pr.write_data(data)
+
 
 @socket_manager.on("terminate")
 async def terminate_process(sid, uuid: str):

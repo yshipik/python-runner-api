@@ -9,3 +9,8 @@ class ProcessManager:
 
     def __init__(self):
         self.processes = {}
+
+    def remove_process(self, uuid: str):
+        target = self.processes[uuid]
+        target.body.terminate(force=True)
+        self.processes.pop(uuid)
