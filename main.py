@@ -83,10 +83,10 @@ async def process_read(sid, pr: Process):
     while True:
         try:
             data = await pr.read_output()
-            await socket_manager.emit("response", (data,), to=sid)
+            await socket_manager.emit("response", (data, pr.uuid), to=sid)
         except EOFError:
             pm_running.remove_process(pr.uuid)
-            await socket_manager.emit("processend")
+            await socket_manager.emit("processend", (pr.uuid,))
             break
             
 @socket_manager.on
@@ -104,7 +104,7 @@ async def process_connect(sid, uuid: str):
         task = asyncio.create_task(process_read(sid, pr))
         await task
     else:
-        await socket_manager.emit("error", "Process doesn't exist")
+        await socket_manager.emit("error", "Process doesn't exist", uuid)
 @socket_manager.on("prompt")
 async def message(sid, uuid: str, data: str):
     print(sid, uuid, data)

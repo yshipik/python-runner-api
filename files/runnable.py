@@ -11,4 +11,5 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         raise ImportError("Importing this module is not allowed")
 
 sys.modules["builtins"].__import__ = restricted_import
-input("hello world")
+t = input("hello world")
+print(t)
