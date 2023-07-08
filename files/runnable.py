@@ -11,10 +11,4 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         raise ImportError("Importing this module is not allowed")
 
 sys.modules["builtins"].__import__ = restricted_import
-import math
-
-t = input("hello world")
-print(t)
-print("hello world")
-
-print(math.sin(3) )
+input("hello world")

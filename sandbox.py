@@ -21,6 +21,7 @@ class CodeRunner:
         if match:
             return True
         return False
+    @classmethod
     def __run(cls, filename: str):
         try:
             result = subprocess.run(["python", "files/" + filename ], 
