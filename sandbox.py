@@ -1,5 +1,7 @@
 import subprocess
 import os
+import uuid
+import re
 class CodeRunner:
     FILE_DEFAULT_NAME = "runnable.py"
     TEST_DEFAULT_NAME = "test.py"
@@ -8,12 +10,17 @@ class CodeRunner:
     FILE_DEFAULT_UNPREVENT = "unprevent.py"
     SOLUTIONS_DEFAULT_PATH = "files/"
     DEFAULT_TIMEOUT = os.environ.get("DEFAULT_TIMEOUT") if os.environ.get("DEFAULT_TIMEOUT") else 5
-
+    INPUT_REGEX = r"input\s{0,1}\("
     @classmethod
     def defend_from_bad_activity(cls, code: str):
         return (True, "")
 
     @classmethod
+    def check_for_input(cls, code: str):
+        match = re.search(cls.INPUT_REGEX, code)
+        if match:
+            return True
+        return False
     def __run(cls, filename: str):
         try:
             result = subprocess.run(["python", "files/" + filename ], 
@@ -34,8 +41,10 @@ class CodeRunner:
             with open(cls.SOLUTIONS_DEFAULT_PATH + cls.FILE_DEFAULT_PREVENT, "r") as prevent_file:
                 prevent_content = prevent_file.read()
             cls.add_file(prevent_content + "\n" + code)
+            if cls.check_for_input(code):
+                return (0, "", "", uuid.uuid4())
             returncode, output, error = cls.__run(cls.FILE_DEFAULT_NAME)
-            return (returncode, output, error)
+            return (returncode, output, error, None)
         else:
             return (-1, "", check[1])
     @classmethod

@@ -1,5 +1,5 @@
 import sys
-granted_modules = ["math", "random"]
+granted_modules = ["math", "random", "re"]
 
 def restricted_open(filename: str, mode: str = "w", **kw):
     raise PermissionError("Cannot interact with files")
@@ -11,10 +11,6 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         raise ImportError("Importing this module is not allowed")
 
 sys.modules["builtins"].__import__ = restricted_import
-import math; print(math.sin(3))
-sys.modules["builtins"].__import__ = tt
-from runnable import *
-import os
-print(os.environ)
-assert add_smth(2, 3) == 5
-assert add_smth(4, 5) == 9
+data = int(input("enter a number:"))
+print(data)
+print(data + 13)

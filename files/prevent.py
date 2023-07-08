@@ -1,5 +1,5 @@
 import sys
-granted_modules = ["math", "random"]
+granted_modules = ["math", "random", "re"]
 
 def restricted_open(filename: str, mode: str = "w", **kw):
     raise PermissionError("Cannot interact with files")
