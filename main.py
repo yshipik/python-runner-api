@@ -79,6 +79,11 @@ async def get_test(response: Response):
         response.status_code = 400
         return {"status": "failure", "message": "can't give back test file"}
 
+async def process_timeout(pr: Process):
+    await asyncio.sleep(60)
+    if pm_running.processes.get(pr.uuid):
+        pm_running.remove_process(pr.uuid)
+        print(f"Process with uuid {pr.uuid} was removed because of timeout")
 async def process_read(sid, pr: Process):
     while True:
         try:
@@ -87,6 +92,8 @@ async def process_read(sid, pr: Process):
         except EOFError:
             pm_running.remove_process(pr.uuid)
             await socket_manager.emit("processend", (pr.uuid,))
+            break
+        except:
             break
             
 @socket_manager.on
@@ -102,13 +109,16 @@ async def process_connect(sid, uuid: str):
     pr = pm_running.processes.get(str(uuid))
     if pr != None:
         task = asyncio.create_task(process_read(sid, pr))
+        task2 = asyncio.create_task(process_timeout(pr))
         await task
+        await task2
     else:
         await socket_manager.emit("error", "Process doesn't exist", uuid)
 @socket_manager.on("prompt")
 async def message(sid, uuid: str, data: str):
     print(sid, uuid, data)
     print(pm_running.processes.keys())
+    print(data)
     pr = pm_running.processes.get(str(uuid))
     await pr.write_data(data)
 

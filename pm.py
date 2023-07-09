@@ -11,6 +11,9 @@ class ProcessManager:
         self.processes = {}
 
     def remove_process(self, uuid: str):
-        target = self.processes[uuid]
-        target.body.terminate(force=True)
-        self.processes.pop(uuid)
+        try:
+            target = self.processes[uuid]
+            target.body.terminate(force=True)
+            self.processes.pop(uuid)
+        except KeyError:
+            pass
