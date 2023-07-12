@@ -8,7 +8,8 @@ COPY pm.py /app/
 COPY process.py /app/
 COPY sandbox.py /app/
 COPY /files/ /app/files/
-COPY /tests/ /app/tests/
+COPY config.py /app/
+COPY config.json /app/
 COPY uv.py /app/
 RUN pip3 install -r requirements.txt
 

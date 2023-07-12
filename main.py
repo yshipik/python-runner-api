@@ -6,9 +6,14 @@ from pydantic import BaseModel
 from fastapi_socketio import SocketManager
 from pm import ProcessManager
 from process import Process
+from config import Config
 import asyncio
+
 pm_running = ProcessManager()
 pr_handlers = {}
+cfg = Config()
+code_runner = CodeRunner(cfg)
+
 class CodeModel(BaseModel):
     code: str
 
@@ -43,44 +48,20 @@ def wrap_response(error: str, is_server_failure: bool):
 
 @app.post("/api/python/run")
 async def run_code(code: CodeModel, response: Response):
-    status_code, output, error, uuid = CodeRunner.run_code(code.code)
+    status_code, output, error, uuid = code_runner.run_code(code.code)
+    output = code_runner.defend_from_bad_activity(output)
     if uuid:
         print("Process was created " + str(uuid))
-        pm_running.processes[str(uuid)] = Process(CodeRunner.SOLUTIONS_DEFAULT_PATH + CodeRunner.FILE_DEFAULT_NAME, str(uuid))
+        pm_running.processes[str(uuid)] = Process(code_runner.SOLUTIONS_DEFAULT_PATH + code_runner.FILE_DEFAULT_NAME, str(uuid))
         return {'status_code': code, 'output': output, 'error': error, 'uuid': uuid}
     if status_code == -1:
         state = handle_bad_behavior(status_code, error, response)
         wrap_response(error, state)
     return {'status_code': code, 'output': output, 'error': error}
 
-@app.post("/api/python/test")
-async def test_code(data: TestQueryModel, response: Response):
-    status_code, output, error = CodeRunner.test_code(data.code, data.filename)
-    if status_code == -1:
-        print(error)
-        state = handle_bad_behavior(status_code, error, response)
-        wrap_response(error, state)
-    return {'status_code': status_code, 'output': output, 'error': error}
-
-@app.post("/api/python/dev/test")
-async def add_test(file: UploadFile, response: Response):
-    data = await file.read()
-    if CodeRunner.add_test_file(data, file.filename):
-        return {"status": "success", 'message': "File was added"}
-    response.status_code = 400
-    return {"status": "failure", "message": "Can't add file"}
-
-@app.get("/api/python/dev/test")
-async def get_test(response: Response):
-    files = CodeRunner.list_test_files()
-    if files != None:
-        return {"status": "success", "files": files}
-    else:
-        response.status_code = 400
-        return {"status": "failure", "message": "can't give back test file"}
 
 async def process_timeout(pr: Process):
-    await asyncio.sleep(60)
+    await asyncio.sleep(cfg.input_process_timeout)
     if pm_running.processes.get(pr.uuid):
         pm_running.remove_process(pr.uuid)
         print(f"Process with uuid {pr.uuid} was removed because of timeout")
@@ -88,6 +69,7 @@ async def process_read(sid, pr: Process):
     while True:
         try:
             data = await pr.read_output()
+            data = code_runner.defend_from_bad_activity(data)
             await socket_manager.emit("response", (data, pr.uuid), to=sid)
         except EOFError:
             pm_running.remove_process(pr.uuid)
@@ -113,7 +95,7 @@ async def process_connect(sid, uuid: str):
         await task
         await task2
     else:
-        await socket_manager.emit("error", "Process doesn't exist", uuid)
+        await socket_manager.emit("resposne", "Process doesn't exist", uuid)
 @socket_manager.on("prompt")
 async def message(sid, uuid: str, data: str):
     print(sid, uuid, data)
