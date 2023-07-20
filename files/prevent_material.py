@@ -10,3 +10,10 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
         raise ImportError("Importing this module is not allowed")
 
 sys.modules["builtins"].__import__ = restricted_import
+
+def restricted_locals():
+    return {}
+def restricted_globals():
+    return {}
+locals = restricted_locals
+globals = restricted_globals

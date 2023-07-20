@@ -6,14 +6,13 @@ import json
 from config import Config
 class CodeRunner:
     FILE_DEFAULT_NAME = "runnable.py"
-    TEST_DEFAULT_NAME = "test.py"
-    TEST_DEFAULT_PATH = "tests/"
     FILE_DEFAULT_PREVENT = "prevent.py"
     FILE_DEFAULT_UNPREVENT = "unprevent.py"
     SOLUTIONS_DEFAULT_PATH = "files/"
     DEFAULT_TIMEOUT = 5
     INPUT_REGEX = r"input\s{0,1}\("
     SECRET = "C7SNKxm9knQd3r9xyC8qDNTm65wAY8fNhDzF"
+    PREVENT_CONTENT = "" # после init не будет пустым
     def __init__(self, config: Config):
         self.DEFAULT_TIMEOUT = config.timeout
         self.update_prevent(config.granted_modules)
@@ -27,8 +26,7 @@ class CodeRunner:
 
         injected_string = "import sys\n"
 
-        with open("./files/prevent.py", "w") as prevent:
-            prevent.write(injected_string + prevent_material_data)
+        self.PREVENT_CONTENT = injected_string + prevent_material_data
 
 
     def defend_from_bad_activity(self, output: str):
@@ -45,7 +43,7 @@ class CodeRunner:
     
     def __run(self, filename: str):
         try:
-            result = subprocess.run(["python", "files/" + filename ], 
+            result = subprocess.run(["python3", "files/" + filename ], 
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
                                     universal_newlines=True, timeout=self.DEFAULT_TIMEOUT)
             stdout_output = result.stdout
@@ -57,10 +55,9 @@ class CodeRunner:
 
     def run_code(self, code: str):
         # if everything is good
-        prevent_content = ""
-        with open(self.SOLUTIONS_DEFAULT_PATH + self.FILE_DEFAULT_PREVENT, "r") as prevent_file:
-            prevent_content = prevent_file.read()
-        self.add_file(prevent_content + "\n" + code)
+        # используем prevent_content из инициализации
+        self.add_file(self.PREVENT_CONTENT + "\n" + code)
+        # проверка на наличие input() в code
         if self.check_for_input(code):
             return (0, "", "", uuid.uuid4())
         returncode, output, error = self.__run(self.FILE_DEFAULT_NAME)
@@ -75,41 +72,3 @@ class CodeRunner:
         with open("./files/" + self.FILE_DEFAULT_NAME, "a") as file:
             file.write("\n" + code)
     
-    def test_code(self, code: str, test_name: str):
-        check = self.defend_from_bad_activity(code)
-        if check[0] == True:
-            try: 
-                test_code = ""
-                prevent_code = ""
-                unprevent_code = ""
-                with open(self.SOLUTIONS_DEFAULT_PATH + self.FILE_DEFAULT_PREVENT) as prevent_file:
-                    prevent_code = prevent_file.read()
-                with open(self.TEST_DEFAULT_PATH + test_name, "r") as test_file:
-                    test_code = test_file.read()
-                with open(self.SOLUTIONS_DEFAULT_PATH + self.FILE_DEFAULT_UNPREVENT) as unprevent_file:
-                    unprevent_code = unprevent_file.read()
-                self.add_file(prevent_code + "\n" + code + "\n" + unprevent_code + "\n" + test_code)
-                return_code, output, error = self.__run(self.TEST_DEFAULT_NAME)
-                return (return_code, output, error)
-            except FileNotFoundError:
-                return (-1, "", "Server Error: Test file Not Found")
-        else:
-            return (-1, "", check[1])
-        
-    def add_test_file(self, fileb: bytes, filename: str):
-        try:
-            with open(self.TEST_DEFAULT_PATH + filename, "wb") as file:
-                file.write(fileb)
-            return True
-        except:
-            return False
-    
-    def list_test_files(self):
-        try:
-            files = os.listdir("./tests/")
-            for i in files:
-                if i == "runnable.py":
-                    files.remove(i)
-            return files
-        except:
-            return None
